@@ -29,8 +29,8 @@ def max_proj_nd2(hyperstack, path, name):
 
     def process_stack(stack):
         dna = stack[:, 0, :]  # All Z slices of channel 1
-        centrin = stack[:, 1, :]  # All Z slices of channel 2
-        polye = stack[:, 2, :]  # All Z slices of channel 3
+        centrin = stack[:, 2, :]  # All Z slices of channel 2
+        polye = stack[:, 1, :]  # All Z slices of channel 3
 
         # Create max projections of the channels
         max_centrin = np.max(centrin, axis=0)
@@ -76,6 +76,143 @@ def max_proj_nd2(hyperstack, path, name):
             }
         )
 
+
+# # WHEN 2 CHANNELS ONLY, CENTRIN + POLYE
+def max_proj_nd2_2ch(hyperstack, path, filename):
+    """
+    Create a max projection of a 2-channel image and save it as a TIFF file.
+
+    Parameters:
+    hyperstack (numpy.ndarray): The multichannel image array with shape (Z, C, Y, X).
+    path (str): The path to the directory where the TIFF file will be saved.
+    name (str): The name of the TIFF file.
+
+    Returns:
+    numpy.ndarray: The max projection image array.
+    """
+    dims = np.shape(hyperstack)  # (Z, C, Y, X)
+
+    def process_stack(stack):
+        dna = stack[:, 0, :]      # Channel 0 → DNA
+        centrin = stack[:, 1, :]  # Channel 1 → Centrin
+
+        max_dna = np.max(dna, axis=0)
+        max_centrin = np.max(centrin, axis=0)
+
+        # Output 2-channel stacked image: [DNA (Red), Centrin (Green)]
+        return np.stack((
+            max_dna.astype(np.float32),
+            max_centrin.astype(np.float32)
+        ), axis=0)
+
+    os.makedirs(os.path.join(path, 'max_proj'), exist_ok=True)
+
+    if len(dims) > 4:
+        with ThreadPoolExecutor() as executor:
+            projections = list(executor.map(process_stack, [hyperstack[i] for i in range(dims[0])]))
+
+        for i, image in enumerate(projections):
+            tiff.imwrite(
+                os.path.join(path, 'max_proj', name[:-4] + f"_max_proj_{i}.tif"),
+                image,
+                imagej=True,
+                metadata={
+                    'axes': 'CYX',
+                    'channel_colors': [
+                        {'color': 'Red'},
+                        {'color': 'Green'}
+                    ]
+                }
+            )
+    elif len(dims) == 4:
+        projection = process_stack(hyperstack)
+        tiff.imwrite(
+            os.path.join(path, 'max_proj', name[:-4] + "_max_proj.tif"),
+            projection,
+            imagej=True,
+            metadata={
+                'axes': 'CYX',
+                'channel_colors': [
+                    {'color': 'Red'},
+                    {'color': 'Green'}
+                ]
+            }
+        )
+
+
+
+def max_proj_nd2_dynamic(hyperstack, path, name):
+    """
+    Create a max projection for 2- or 3-channel ND2 files and save it as a TIFF.
+
+    Parameters:
+    hyperstack (numpy.ndarray): Image array of shape (Z, C, Y, X)
+    path (str): Save directory
+    name (str): Original filename
+
+    Returns:
+    numpy.ndarray: Max-projected image array
+    """
+    import os
+    import numpy as np
+    import tifffile as tiff
+    from concurrent.futures import ThreadPoolExecutor
+
+    dims = np.shape(hyperstack)  # Expecting (Z, C, Y, X)
+    num_channels = dims[1]
+
+    def process_stack(stack):
+        dna = np.max(stack[:, 0, :], axis=0)
+        centrin = np.max(stack[:, 1, :], axis=0)
+
+        if num_channels == 3:
+            polye = np.max(stack[:, 2, :], axis=0)
+            return np.stack((
+                dna.astype(np.float32),
+                centrin.astype(np.float32),
+                polye.astype(np.float32)
+            ), axis=0)
+        elif num_channels == 2:
+            return np.stack((
+                dna.astype(np.float32),
+                centrin.astype(np.float32)
+            ), axis=0)
+        else:
+            raise ValueError(f"Unsupported channel count: {num_channels}")
+
+    os.makedirs(os.path.join(path, 'max_proj'), exist_ok=True)
+
+    if len(dims) > 4:
+        with ThreadPoolExecutor() as executor:
+            projections = list(executor.map(process_stack, [hyperstack[i] for i in range(dims[0])]))
+
+        for i, image in enumerate(projections):
+            tiff.imwrite(
+                os.path.join(path, 'max_proj', name[:-4] + f"_max_proj_{i}.tif"),
+                image,
+                imagej=True,
+                metadata={
+                    'axes': 'CYX',
+                    'channel_colors': [
+                        {'color': 'Red'},
+                        {'color': 'Green'}
+                    ] + ([{'color': 'Blue'}] if num_channels == 3 else [])
+                }
+            )
+    elif len(dims) == 4:
+        projection = process_stack(hyperstack)
+        tiff.imwrite(
+            os.path.join(path, 'max_proj', name[:-4] + "_max_proj.tif"),
+            projection,
+            imagej=True,
+            metadata={
+                'axes': 'CYX',
+                'channel_colors': [
+                    {'color': 'Red'},
+                    {'color': 'Green'}
+                ] + ([{'color': 'Blue'}] if num_channels == 3 else [])
+            }
+        )
 
 
 # Import and classify nd2 files into a dictionary, divided by sample and extracting the calibration data from the metadata file
@@ -150,6 +287,66 @@ def import_and_classify_nd2_files(path):
     print(f"Samples found: {list(samplegroup.keys())}")
 
     return samplegroup, centrin, polye, dna
+
+
+
+
+# Function to process 2-channel ND2 files
+def import_and_classify_nd2_files_2ch(path):
+    """
+    Import all the 2-channel ND2 files in a folder, classify them by sample based on info extracted from the filename,
+    and store them in a dictionary as numpy arrays.
+
+    :param path: Path to the folder containing the nd2 files.
+    :return: Dictionaries with the classified nd2 files and individual channels.
+    """
+    samplegroup = {}
+    centrin = {}
+    dna = {}
+
+    @pims.pipeline
+    def as_gray(image):
+        return image[:, :, 0]  # Convert to grayscale if 3D
+
+    for filename in os.listdir(path):
+        if filename.endswith('.nd2'):
+            match = re.search(r'\d{6}_(.+?)_cell\d+', filename)
+            sample_info = match.group(1) if match else "Unknown"
+
+            with nd2.ND2File(os.path.join(path, filename)) as nd2_file:
+                metadata = nd2_file.frame_metadata(0)
+                calibration = metadata.channels[0].volume.axesCalibration[0]
+
+            hyperstack = nd2.imread(os.path.join(path, filename))
+            # max_proj_nd2_dynamic(hyperstack, path, filename)
+            max_proj_nd2_2ch(hyperstack, path, filename)
+
+            # Store the full file
+            if sample_info not in samplegroup:
+                samplegroup[sample_info] = []
+            samplegroup[sample_info].append((filename, hyperstack, calibration))
+
+            # Extract channels: assuming 0 = DNA, 1 = Centrin
+            dna_image = np.max(hyperstack[:, 0, :], axis=0)
+            centrin_image = np.max(hyperstack[:, 1, :], axis=0)
+
+            if dna_image.ndim == 3:
+                dna_image = as_gray(dna_image)
+            if centrin_image.ndim == 3:
+                centrin_image = as_gray(centrin_image)
+
+            if sample_info not in dna:
+                dna[sample_info] = []
+            dna[sample_info].append((filename, dna_image, calibration))
+
+            if sample_info not in centrin:
+                centrin[sample_info] = []
+            centrin[sample_info].append((filename, centrin_image, calibration))
+
+    print(f"Imported {len(samplegroup)} samples from {path}.")
+    print(f"Samples found: {list(samplegroup.keys())}")
+
+    return samplegroup, centrin, dna
 
 
 
@@ -244,6 +441,67 @@ def display_multichannel_samplegroup(samplegroup):
             plt.suptitle(f'Max Intensity Projections of {filename}', fontsize=20)
             plt.tight_layout()
             plt.show()
+
+
+
+def display_multichannel_samplegroup_2ch(samplegroup):
+    """
+    Display 2-channel ND2 images (Centrin & DNA) in a subplot.
+    Each image is shown with color mapping and scale bar.
+    """
+    for sample, files in samplegroup.items():
+        for filename, hyperstack, calibration in files:
+            # Extract and max-project channels
+            dna = np.max(hyperstack[:, 0, :], axis=0)
+            centrin = np.max(hyperstack[:, 1, :], axis=0)
+
+            # Apply colorify to each channel
+            showcentrin, _, _ = colorify.colorify_by_name(centrin, cmap_name='magenta', flip_map=False)
+            showdna, _, _ = colorify.colorify_by_hex(dna, cmap_hex='#00ffff')
+
+            # Set up figure
+            plt.figure(figsize=(24, 6))
+
+            # Centrin
+            plt.subplot(1, 3, 1)
+            plt.imshow(showcentrin)
+            plt.title('Centrin Channel')
+            plt.axis('off')
+            _add_scale_bar(showcentrin.shape, calibration)
+
+            # DNA
+            plt.subplot(1, 3, 2)
+            plt.imshow(showdna)
+            plt.title('DNA Channel')
+            plt.axis('off')
+            _add_scale_bar(showdna.shape, calibration)
+
+            # Combined
+            plt.subplot(1, 3, 3)
+            combined = colorify.combine_image([showcentrin, showdna])
+            plt.imshow(combined)
+            plt.title('Combined Channels')
+            plt.axis('off')
+            _add_scale_bar(combined.shape, calibration)
+
+            # Add main title
+            plt.suptitle(f'Max Intensity Projections of {filename}', fontsize=20)
+            plt.tight_layout()
+            plt.show()
+
+
+
+# Helper function to draw a 50 μm scale bar
+def _add_scale_bar(shape, calibration):
+    scale_length_px = 50 / calibration
+    scale_x_start = 50
+    scale_y_start = shape[0] - 50
+    bar = patches.Rectangle((scale_x_start, scale_y_start), scale_length_px, 5,
+                            linewidth=0, facecolor='white')
+    plt.gca().add_patch(bar)
+    plt.text(scale_x_start + scale_length_px / 2, scale_y_start - 10, '50 μm',
+             color='white', fontsize=10, ha='center', va='bottom')
+
 
 
 
