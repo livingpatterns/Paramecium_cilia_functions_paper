@@ -16,9 +16,27 @@ Output:
 - A text file with tracking parameters used (`parameters_tracking_tp.txt`)
 """
 
+import numpy as np
 import trackpy as tp
 import os
 import pandas as pd
+
+# INPUT PARAMETERS
+# Specify the path with your .pkl files where particle detections are stored
+path = 'W:/Users/Daphne/Imaging_Daphne/25-11-18_RPi_ptetwt_swimming_deciliated/bgd_subs_4000/'
+# Track the particles using trackpy
+search_range = 50  # maximum distance in pixels that a particle can move between frames
+memory = 10  # maximum number of frames a particle can be lost and still be tracked
+threshold = 1800  # minimum number of frames a particle has to be tracked to be considered good
+
+#list of folders that end in _analysis
+analysis_folders = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('_analysis')]
+video_files = sorted([os.path.join(path, f) for f in os.listdir(path) if f.endswith('.mp4')])
+# #to test things one video at a time
+video_files=path+'processed_181125_ptetwt_swimming_singlets_2.mp4'
+video_files=[video_files]
+analysis_folders=path+'processed_181125_ptetwt_swimming_singlets_2_analysis'
+analysis_folders=[analysis_folders]
 
 
 def get_tracks(track_files):
@@ -49,20 +67,6 @@ def get_tracks(track_files):
     return all_x, all_y
 
 
-# Specify the path with your .pkl files where particle detections are stored
-path = 'W:/Users/Daphne/Imaging_Daphne/25-11-18_RPi_ptetwt_swimming_deciliated/bgd_subs_4000/'
-
-#list of folders that end in _analysis
-analysis_folders = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('_analysis')]
-video_files = sorted([os.path.join(path, f) for f in os.listdir(path) if f.endswith('.mp4')])
-
-# #to test things one video at a time
-video_files=path+'processed_181125_ptetwt_swimming_singlets_2.mp4'
-video_files=[video_files]
-analysis_folders=path+'processed_181125_ptetwt_swimming_singlets_2_analysis'
-analysis_folders=[analysis_folders]
-
-
 for n_video in range(0,len(video_files)):
     analysis_path=analysis_folders[n_video]
     video_name = os.path.basename(analysis_path.split('_', 1)[1].rsplit('_', 1)[0])  # name of the video
@@ -70,11 +74,6 @@ for n_video in range(0,len(video_files)):
     #Tracking with trackpy
     #import .pkl file with particle positions
     track_me=pd.read_pickle(analysis_path+'/all_raw_particle_positions.pkl')
-
-    #Track the particles using trackpy
-    search_range= 50 #maximum distance in pixels that a particle can move between frames
-    memory= 10 #maximum number of frames a particle can be lost and still be tracked
-    threshold= 1800 #minimum number of frames a particle has to be tracked to be considered good
 
     tp.quiet()  # turn off progress reports for now
     tracks = tp.link(track_me, search_range=search_range, memory=memory)

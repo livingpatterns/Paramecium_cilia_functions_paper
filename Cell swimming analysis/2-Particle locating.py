@@ -20,6 +20,13 @@ import matplotlib.pyplot as plt
 import os
 import trackpy as tp
 
+#INPUT PARAMETERS
+# Specify the path with your microscopy images
+path = 'W:/Users/Daphne/Imaging_Daphne/25-11-18_RPi_ptetwt_swimming_deciliated/bgd_subs_4000/'
+# Particle tracking parameters: change for other cell types / conditions
+diameter = 17
+minmass = 800
+
 
 # Use pims pipeline to convert image to grayscale, taking only one color channel
 @pims.pipeline
@@ -64,9 +71,6 @@ if os.name == 'nt':
 else:
     multiprocessing.set_start_method('fork', force=True)
 
-# Specify the path with your microscopy images
-path = 'W:/Users/Daphne/Imaging_Daphne/25-11-18_RPi_ptetwt_swimming_deciliated/bgd_subs_4000/'
-
 # Debugging print statements
 print("Checking path:", path)
 print("Path exists:", os.path.exists(path))
@@ -95,10 +99,6 @@ try:
     # Ensure the frame index is within range
     if n_frame >= len(video):
         raise ValueError(f"Frame index {n_frame} is out of range. Max index: {len(video) - 1}")
-
-    # Particle tracking parameters: change for other cell types / conditions
-    diameter = 17
-    minmass = 800
 
     # Extract and process the frame
     test_frame = video[n_frame].copy()

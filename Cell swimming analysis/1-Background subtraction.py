@@ -22,7 +22,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 import imageio
 
-# Define constants
+# INPUT PARAMETERS
 CHUNK_SIZE = 500 # increase when video contains very slow moving cells
 MAX_WORKERS = 2
 MACRO_BLOCK_SIZE = 1
