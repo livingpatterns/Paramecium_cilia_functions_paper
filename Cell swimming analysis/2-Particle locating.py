@@ -1,3 +1,18 @@
+"""
+# Particle locating for cell swimming video analysis
+This script detects and locates particles (cells) in background-subtracted video frames to prepare for tracking and further analysis.
+It processes all preprocessed .mp4 videos in a specified directory, using TrackPy to identify particles and record all particle coordinates for each frame.
+
+Input:
+- path: Directory containing preprocessed `.mp4` videos with background subtracted
+- diameter: Estimated diameter of the particles in pixels
+- minmass: Minimum integrated brightness of particles to be detected
+
+Output:
+- Pickle (`.pkl`) files with coordinates of detected particles for each frame, saved in a subdirectory of `path`
+- A text file with detection parameters used (`parameters_part_id.txt`)
+"""
+
 import numpy as np
 import pims
 import multiprocessing
@@ -41,8 +56,6 @@ def quality_control1(features, path, n_bins=10):
     plt.xlabel('Number of particles per frame')
     plt.savefig(os.path.join(savefolder,'n_particles_found.png'))
     plt.close()
-
-
 
 
 # Use 'spawn' start method for multiprocessing on Windows, 'fork' for mac and Linux

@@ -1,3 +1,21 @@
+"""
+# Particle Tracking for cell swimming video analysis
+This script links detected particles across video frames to reconstruct trajectories of swimming cells.
+It processes particle position data from the previous particle locating code, applies TrackPy to associate particles between frames, and outputs the resulting trajectories and visualizations.
+
+Input:
+- path: Directory containing analysis folders with detected particle positions (`all_raw_particle_positions.pkl`)
+- search_range: Maximum distance (in pixels) a particle can move between frames
+- memory: Maximum number of frames a particle can be lost and still be tracked
+- threshold: Minimum number of frames a particle must be tracked to be considered valid
+- To process one video at a time, set video_files and analysis_folders to lists of length 1 with the desired video and analysis folder paths (recommended to check each video individually). Specify these paths directly in the code in video_files and analysis_folders variables.
+
+Output:
+- Pickle (`.pkl`) files with tracked particle trajectories, saved in each analysis folder
+- PNG plots of all tracks, saved in the `plots` subdirectory of each analysis folder
+- A text file with tracking parameters used (`parameters_tracking_tp.txt`)
+"""
+
 import trackpy as tp
 import os
 import pandas as pd
@@ -40,15 +58,12 @@ video_files = sorted([os.path.join(path, f) for f in os.listdir(path) if f.endsw
 
 # #to test things one video at a time
 video_files=path+'processed_181125_ptetwt_swimming_singlets_2.mp4'
-# #make video files a list of length 1
 video_files=[video_files]
 analysis_folders=path+'processed_181125_ptetwt_swimming_singlets_2_analysis'
 analysis_folders=[analysis_folders]
 
 
 for n_video in range(0,len(video_files)):
-#n_video=0#video to be analyzed for testing
-#name of video dropping the word processed and the last word analysis
     analysis_path=analysis_folders[n_video]
     video_name = os.path.basename(analysis_path.split('_', 1)[1].rsplit('_', 1)[0])  # name of the video
     print(video_name)

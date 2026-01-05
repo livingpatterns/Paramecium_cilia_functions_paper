@@ -1,3 +1,20 @@
+"""
+# Background subtraction for cell swimming video analysis
+This script performs background subtraction on cell swimming videos to enhance tracking of moving cells in later steps of the analysis.
+It processes all `.mp4` videos in a specified directory by dividing each video into chunks, calculating a median background for each chunk, and subtracting it from the frames.
+The processed videos are saved for further analysis.
+
+Input:
+- VIDEO_PATH: Directory containing input `.mp4` videos
+- CHUNK_SIZE: Number of frames per chunk for background calculation
+- MAX_WORKERS: Number of parallel threads for processing
+- MACRO_BLOCK_SIZE: Ensures frame dimensions are compatible with video encoding
+
+Output:
+- Preprocessed `.mp4` videos with background subtracted, saved in a subdirectory of VIDEO_PATH
+- A text file with processing parameters used (`parameters.txt`)
+"""
+
 import os
 import cv2
 import numpy as np
@@ -6,7 +23,7 @@ from concurrent.futures import ThreadPoolExecutor
 import imageio
 
 # Define constants
-CHUNK_SIZE = 4000
+CHUNK_SIZE = 500 # increase when video contains very slow moving cells
 MAX_WORKERS = 2
 MACRO_BLOCK_SIZE = 1
 VIDEO_PATH = 'W:/Users/Daphne/Imaging_Daphne/25-11-18_RPi_ptetwt_swimming_deciliated/'
