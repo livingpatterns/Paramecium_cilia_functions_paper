@@ -5,7 +5,7 @@ It loads trajectory data, calculates and visualizes average particle speeds, fil
 Filtered trajectories are saved for further analysis.
 It is possible to process all folders at once or one folder at a time for manual inspection and correction.
 
-Input Parameters:
+Input:
 - path: Directory containing analysis folders with tracked particle trajectories (`all_tracks_tp.pkl`)
 - speed_threshold: Minimum average speed (in pixels/sec) for a trajectory to be retained (depends on cell condition and video pixel size)
 - Optional manual correction: Options to merge or remove trajectories by editing the code
