@@ -10,8 +10,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from concurrent.futures import ThreadPoolExecutor
 
-
-
 def max_proj_nd2(hyperstack, path, name):
     """
     Create a max projection of a multichannel image and save it as a TIFF file.
