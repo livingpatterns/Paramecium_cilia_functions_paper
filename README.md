@@ -1,2 +1,2 @@
 # Daphne_Paramecium_paper
-collection of codes used for measurements and creating figures
+collection of codes used for measurements of live and fixed Paramecium cells, corresponding to the results of: ...
